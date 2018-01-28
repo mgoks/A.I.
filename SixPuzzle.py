@@ -1,32 +1,8 @@
 from collections import deque
-import copy
 
 
-class SixPuzzle:
-    initial_state = [['1', '4', '2'], ['5', '3', ' ']]
-    goal_state = [[' ', '1', '2'], ['5', '4', '3']]
-
-    @staticmethod
-    def get_step_cost(state, action):
-        return 1
-
-    def bfs(self):
-        root = Node(SixPuzzle.initial_state, None, None, 0)
-        if root.is_goal():
-            return root.solution()
-        frontier = deque([root])
-        explored = set()
-        while True:
-            if not frontier:  # if frontier is empty
-                raise Exception('frontier empty')
-            node = frontier.popleft()
-            explored.add(tuple(node.state[0]) + tuple(node.state[1]))  # because you can't add a list to set
-            for action in node.possible_actions():
-                child = node.make_child(action)
-                if tuple(node.state[0]) + tuple(node.state[1]) not in explored or child.state not in frontier:
-                    if child.is_goal():
-                        return child.solution()
-                    frontier.append(child)
+INITIAL_STATE = (1, 4, 2, 5, 3, 0)
+GOAL_STATE = (0, 1, 2, 5, 4, 3)
 
 
 class Node:
@@ -36,52 +12,11 @@ class Node:
         self.action = action
         self.path_cost = path_cost
 
-    def make_child(self, action):
-        return Node(
-            self.new_state_after(action),
-            self,
-            action,
-            self.path_cost + SixPuzzle.get_step_cost(self.state, action)
-        )
+    def get_step_cost(self, action):
+        return 1
 
-    def new_state_after(self, action):
-        pos_of_blank = self.get_pos_of_blank()
-        row = pos_of_blank[0]
-        col = pos_of_blank[1]
-        new_state = copy.deepcopy(self.state)
-        if action == 'right':
-            new_state[row][col] = new_state[row][col + 1]
-            new_state[row][col + 1] = ' '
-        elif action == 'left':
-            new_state[row][col] = new_state[row][col - 1]
-            new_state[row][col - 1] = ' '
-        elif action == 'up':
-            new_state[row][col] = new_state[row - 1][col]
-            new_state[row - 1][col] = ' '
-        elif action == 'down':
-            new_state[row][col] = new_state[row + 1][col]
-            new_state[row + 1][col] = ' '
-        return new_state
-
-    def get_pos_of_blank(self):
-        for i in range(0, len(self.state)):
-            for j in range(0, len(self.state[i])):
-                if self.state[i][j] == ' ':
-                    return i, j
-
-    def possible_actions(self):
-        if self.state[0][0] == ' ':
-            return ['down', 'right']
-        elif self.state[0][1] == ' ':
-            return ['left', 'down', 'right']
-        elif self.state[0][2] == ' ':
-            return ['left', 'down']
-        elif self.state[1][0] == ' ':
-            return ['up', 'right']
-        elif self.state[1][1] == ' ':
-            return ['left', 'up', 'right']
-        elif self.state[1][2] == ' ':
-            return ['left', 'up']
+    def is_goal(self):
+        return self.state == GOAL_STATE
 
     def solution(self):
         path = [self.state]
@@ -89,13 +24,102 @@ class Node:
         while node.parent is not None:
             node = node.parent
             path.append(node.state)
+        path.reverse()
         return path
 
-    def is_goal(self):
-        if self.state == SixPuzzle.goal_state:
-            return True
-        return False
+    def __repr__(self):
+        return str(self.state)
+
+    def possible_actions(self):
+        """
+
+        :return: a collection of possible actions can be performed on this state (self)
+        """
+        blank_index = self.state.index(0)
+        s = self.state
+        actions = []
+        if blank_index == 0:
+            actions.extend([(s[3], 'D'), (s[1], 'R')])
+        elif blank_index == 1:
+            actions.extend([(s[0], 'L'), (s[2], 'R'), (s[4], 'D')])
+        elif blank_index == 2:
+            actions.extend([(s[1], 'L'), (s[5], 'D')])
+        elif blank_index == 3:
+            actions.extend([(s[0], 'U'), (s[4], 'R')])
+        elif blank_index == 4:
+            actions.extend([(s[3], 'L'), (s[1], 'U'), (s[5], 'R')])
+        elif blank_index == 5:
+            actions.extend([(s[4], 'L'), (s[2], 'U')])
+        actions.sort()
+        just_actions = []
+        for each_tuple in actions:
+            just_actions.append(each_tuple[1])
+        return just_actions
+
+    def child_after(self, action):
+        return Node(
+            self.new_state_after(action),
+            self,
+            action,
+            self.path_cost + self.get_step_cost(action)
+        )
+
+    def new_state_after(self, action):
+        blank_index = self.state.index(0)
+        if action == 'U':
+            return self.swap(blank_index, blank_index - 3)
+        elif action == 'D':
+            return self.swap(blank_index, blank_index + 3)
+        elif action == 'L':
+            return self.swap(blank_index, blank_index - 1)
+        elif action == 'R':
+            return self.swap(blank_index, blank_index + 1)
+
+    def swap(self, blank, other):
+        tmp = list(self.state)
+        tmp[blank] = self.state[other]
+        tmp[other] = 0
+        return tuple(tmp)
 
 
-problem = SixPuzzle()
-print(problem.bfs())
+def bfs():
+    root = Node(INITIAL_STATE, None, None, 0)
+    if root.is_goal():
+        return root.solution()
+    frontier = deque([root])
+    explored = set()
+    while True:
+        if not frontier:  # if frontier is empty
+            raise Exception('frontier empty')
+        node = frontier.popleft()
+        explored.add(node.state)
+        for action in node.possible_actions():
+            child = node.child_after(action)
+            if node.state not in explored or child not in frontier:
+                if child.is_goal():
+                    return child.solution()
+                frontier.append(child)
+
+
+def dfs(node, explored):
+    explored.add(node.state)
+    if not node.is_goal():
+        for each_move in node.possible_actions():
+            child = node.child_after(each_move)
+            if child.state not in explored:
+                dfs(child, explored)
+    else:
+        print(node.solution())
+        return
+
+
+# path = bfs()
+# for each_state in path:
+#     print(each_state[0:3])
+#     print(each_state[3:])
+#     print("")
+print(bfs())
+
+r = Node(INITIAL_STATE, None, None, 0)
+e = set()
+dfs(r, e)
