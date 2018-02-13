@@ -11,6 +11,10 @@ class Node:
         self.parent = parent
         self.action = action
         self.path_cost = path_cost
+        if parent is None:
+            self.depth = 0
+        else:
+            self.depth = parent.depth + 1
 
     def get_step_cost(self, action):
         return 1
@@ -81,6 +85,15 @@ class Node:
         tmp[other] = 0
         return tuple(tmp)
 
+    def expand(self):
+        """
+        :return: a collection of successor of this node
+        """
+        successors = []
+        for each_action in self.possible_actions():
+            successors.append(self.child_after(each_action))
+        return successors
+
 
 def bfs():
     root = Node(INITIAL_STATE, None, None, 0)
@@ -95,7 +108,7 @@ def bfs():
         explored.add(node.state)
         for action in node.possible_actions():
             child = node.child_after(action)
-            if node.state not in explored or child not in frontier:
+            if child.state not in explored and child not in frontier:
                 if child.is_goal():
                     return child.solution()
                 frontier.append(child)
@@ -113,6 +126,42 @@ def dfs(node, explored):
         return
 
 
+# Iterative deepening search
+def ids():
+    depth = 0
+    while True:
+        result = dls(depth)
+        if result != 'cutoff':
+            return result
+        else:
+            depth += 1
+
+
+# Depth-limited search
+def dls(limit):
+    return rec_dls(Node(INITIAL_STATE, None, None, 0), limit)
+
+
+# Recursive depth-limited search
+def rec_dls(node, limit):
+    cutoff_occurred = False
+    if node.is_goal():
+        return node.solution()
+    elif node.depth == limit:
+        return 'cutoff'
+    else:
+        for each_successor in node.expand():
+            result = rec_dls(each_successor, limit)
+            if result == 'cutoff':
+                cutoff_occurred = True
+            elif result != 'failure':
+                return result
+    if cutoff_occurred:
+        return 'cutoff'
+    else:
+        return 'failure'
+
+
 # path = bfs()
 # for each_state in path:
 #     print(each_state[0:3])
@@ -123,3 +172,8 @@ print(bfs())
 r = Node(INITIAL_STATE, None, None, 0)
 e = set()
 dfs(r, e)
+
+print(ids())
+
+if bfs() == ids():
+    print('BFS and IDS return the same path.')
