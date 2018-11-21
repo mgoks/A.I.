@@ -1,9 +1,7 @@
 from collections import deque
 
-
 INITIAL_STATE = (1, 4, 2, 5, 3, 0)
 GOAL_STATE = (0, 1, 2, 5, 4, 3)
-
 
 class Node:
     def __init__(self, state, parent, action, path_cost):
@@ -36,7 +34,6 @@ class Node:
 
     def possible_actions(self):
         """
-
         :return: a collection of possible actions can be performed on this state (self)
         """
         blank_index = self.state.index(0)
@@ -162,11 +159,6 @@ def rec_dls(node, limit):
         return 'failure'
 
 
-# path = bfs()
-# for each_state in path:
-#     print(each_state[0:3])
-#     print(each_state[3:])
-#     print("")
 print(bfs())
 
 r = Node(INITIAL_STATE, None, None, 0)
